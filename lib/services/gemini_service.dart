@@ -33,6 +33,18 @@ class GeminiError {
   }
 }
 
+// Gemini 3.5 Flash 标准配置模板
+class GeminiDefaults {
+  static const String defaultModel = 'gemini-3.5-flash';
+  static const int maxOutputTokens = 8192;
+  static const double temperature = 0.9;
+  static const double topP = 0.95;
+  static const int topK = 40;
+  static const double defaultTemperature = 0.7;
+  static const double creativeTemperature = 0.9;
+  static const double preciseTemperature = 0.3;
+}
+
 // 服务配置
 class GeminiConfig {
   final String apiKey;
@@ -44,21 +56,56 @@ class GeminiConfig {
 
   const GeminiConfig({
     required this.apiKey,
-    this.model = 'gemini-3.5-flash',
-    this.maxOutputTokens = 2048,
-    this.temperature = 0.7,
-    this.topP = 0.8,
-    this.topK = 40,
+    this.model = GeminiDefaults.defaultModel,
+    this.maxOutputTokens = GeminiDefaults.maxOutputTokens,
+    this.temperature = GeminiDefaults.defaultTemperature,
+    this.topP = GeminiDefaults.topP,
+    this.topK = GeminiDefaults.topK,
   });
+
+  factory GeminiConfig.standard() {
+    return const GeminiConfig(
+      apiKey: '',
+      model: GeminiDefaults.defaultModel,
+      maxOutputTokens: 8192,
+      temperature: 0.7,
+      topP: 0.95,
+      topK: 40,
+    );
+  }
+
+  factory GeminiConfig.creative() {
+    return const GeminiConfig(
+      apiKey: '',
+      model: GeminiDefaults.defaultModel,
+      maxOutputTokens: 8192,
+      temperature: 0.9,
+      topP: 0.95,
+      topK: 40,
+    );
+  }
+
+  factory GeminiConfig.precise() {
+    return const GeminiConfig(
+      apiKey: '',
+      model: GeminiDefaults.defaultModel,
+      maxOutputTokens: 8192,
+      temperature: 0.3,
+      topP: 0.95,
+      topK: 40,
+    );
+  }
 
   factory GeminiConfig.fromJson(Map<String, dynamic> json) {
     return GeminiConfig(
       apiKey: json['apiKey'] ?? '',
-      model: json['model'] ?? 'gemini-3.5-flash',
-      maxOutputTokens: json['maxOutputTokens'] ?? 2048,
-      temperature: (json['temperature'] ?? 0.7).toDouble(),
-      topP: (json['topP'] ?? 0.8).toDouble(),
-      topK: json['topK'] ?? 40,
+      model: json['model'] ?? GeminiDefaults.defaultModel,
+      maxOutputTokens:
+          json['maxOutputTokens'] ?? GeminiDefaults.maxOutputTokens,
+      temperature:
+          (json['temperature'] ?? GeminiDefaults.defaultTemperature).toDouble(),
+      topP: (json['topP'] ?? GeminiDefaults.topP).toDouble(),
+      topK: json['topK'] ?? GeminiDefaults.topK,
     );
   }
 
@@ -155,7 +202,8 @@ class GeminiServiceState {
 }
 
 // 服务提供者
-final geminiServiceProvider = StateNotifierProvider<GeminiService, GeminiServiceState>(
+final geminiServiceProvider =
+    StateNotifierProvider<GeminiService, GeminiServiceState>(
   (ref) => GeminiService(),
 );
 
@@ -167,8 +215,7 @@ class GeminiService extends StateNotifier<GeminiServiceState> {
   final _responseController = StreamController<String>.broadcast();
   final _errorController = StreamController<GeminiError>.broadcast();
 
-  GeminiService()
-      : super(const GeminiServiceState()) {
+  GeminiService() : super(const GeminiServiceState()) {
     _loadConfig();
   }
 
@@ -184,18 +231,18 @@ class GeminiService extends StateNotifier<GeminiServiceState> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final configJson = prefs.getString('gemini_config');
-      
+
       if (configJson != null) {
         final configMap = Map<String, dynamic>.from(
           (configJson as Map<dynamic, dynamic>).cast<String, dynamic>(),
         );
         final config = GeminiConfig.fromJson(configMap);
-        
+
         state = state.copyWith(
           config: config,
           isInitialized: config.apiKey.isNotEmpty,
         );
-        
+
         if (config.apiKey.isNotEmpty) {
           await _initializeModel(config);
         }
@@ -213,12 +260,12 @@ class GeminiService extends StateNotifier<GeminiServiceState> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('gemini_config', config.toJson().toString());
-      
+
       state = state.copyWith(
         config: config,
         isInitialized: config.apiKey.isNotEmpty,
       );
-      
+
       if (config.apiKey.isNotEmpty) {
         await _initializeModel(config);
       }
@@ -312,7 +359,6 @@ class GeminiService extends StateNotifier<GeminiServiceState> {
       );
 
       return response.text!;
-
     } catch (e) {
       _handleError(GeminiError(
         type: GeminiErrorType.network,
@@ -349,7 +395,7 @@ class GeminiService extends StateNotifier<GeminiServiceState> {
       );
 
       final buffer = StringBuffer();
-      
+
       await for (final chunk in response) {
         if (chunk.text != null) {
           buffer.write(chunk.text);
@@ -370,7 +416,6 @@ class GeminiService extends StateNotifier<GeminiServiceState> {
         lastRequestTime: DateTime.now(),
         remainingQuota: state.remainingQuota - 1,
       );
-
     } catch (e) {
       _handleError(GeminiError(
         type: GeminiErrorType.network,
