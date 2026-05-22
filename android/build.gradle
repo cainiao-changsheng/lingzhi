@@ -3,6 +3,18 @@ allprojects {
         google()
         mavenCentral()
     }
+    configurations.all {
+        resolutionStrategy {
+            eachDependency { DependencyResolveDetails details ->
+                def requested = details.requested
+                if (requested.group == 'org.jetbrains.kotlin') {
+                    if (requested.name in ['kotlin-stdlib', 'kotlin-stdlib-jdk7', 'kotlin-stdlib-jdk8']) {
+                        details.useVersion '1.7.20'
+                    }
+                }
+            }
+        }
+    }
 }
 
 rootProject.buildDir = '../build'
