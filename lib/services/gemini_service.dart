@@ -134,7 +134,9 @@ class GeminiService extends StateNotifier<GeminiState> {
   final Dio _dio;
   SharedPreferences? _prefs;
 
-  GeminiService() : _dio = Dio(), super(GeminiState()) {
+  GeminiService()
+      : _dio = Dio(),
+        super(GeminiState()) {
     _init();
   }
 
@@ -213,13 +215,13 @@ class GeminiService extends StateNotifier<GeminiState> {
       );
     } catch (e) {
       final errorMessage = _formatError(e);
-      state = state.copyWith(
-        isLoading: false, lastError: errorMessage);
+      state = state.copyWith(isLoading: false, lastError: errorMessage);
       yield* Stream.error(errorMessage);
     }
   }
 
-  Stream<String> _sendRequest(ModelConfig config, List<ChatMessage> messages) async* {
+  Stream<String> _sendRequest(
+      ModelConfig config, List<ChatMessage> messages) async* {
     switch (config.provider) {
       case ModelProvider.gemini:
         yield* _sendGeminiRequest(config, messages);
@@ -236,7 +238,8 @@ class GeminiService extends StateNotifier<GeminiState> {
     }
   }
 
-  Stream<String> _sendGeminiRequest(ModelConfig config, List<ChatMessage> messages) async* {
+  Stream<String> _sendGeminiRequest(
+      ModelConfig config, List<ChatMessage> messages) async* {
     try {
       final url =
           '${config.baseUrl}/v1beta/models/${config.modelName}:streamGenerateContent';
@@ -245,12 +248,14 @@ class GeminiService extends StateNotifier<GeminiState> {
         url,
         queryParameters: {'key': config.apiKey},
         data: {
-          'contents': messages.map((m) => {
-            'role': m.role == 'user' ? 'user' : 'model',
-            'parts': [
-              {'text': m.content}
-            ]
-          }).toList(),
+          'contents': messages
+              .map((m) => {
+                    'role': m.role == 'user' ? 'user' : 'model',
+                    'parts': [
+                      {'text': m.content}
+                    ]
+                  })
+              .toList(),
           'generationConfig': {
             'temperature': 0.7,
             'topP': 0.95,
@@ -261,10 +266,11 @@ class GeminiService extends StateNotifier<GeminiState> {
         options: Options(
           responseType: ResponseType.stream,
           headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-        },
+            'Content-Type': 'application/json',
+            'Accept': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+          },
+        ),
       );
 
       // 解析流式响应
@@ -290,16 +296,19 @@ class GeminiService extends StateNotifier<GeminiState> {
     }
   }
 
-  Stream<String> _sendDeepSeekRequest(ModelConfig config, List<ChatMessage> messages) async* {
+  Stream<String> _sendDeepSeekRequest(
+      ModelConfig config, List<ChatMessage> messages) async* {
     try {
       final response = await _dio.post(
         '${config.baseUrl}/v1/chat/completions',
         data: {
           'model': config.modelName,
-          'messages': messages.map((m) => {
-            'role': m.role == 'user' ? 'user' : 'assistant',
-            'content': m.content,
-          }).toList(),
+          'messages': messages
+              .map((m) => {
+                    'role': m.role == 'user' ? 'user' : 'assistant',
+                    'content': m.content,
+                  })
+              .toList(),
           'stream': true,
           'temperature': 0.7,
         },
@@ -327,16 +336,19 @@ class GeminiService extends StateNotifier<GeminiState> {
     }
   }
 
-  Stream<String> _sendOpenAIRequest(ModelConfig config, List<ChatMessage> messages) async* {
+  Stream<String> _sendOpenAIRequest(
+      ModelConfig config, List<ChatMessage> messages) async* {
     try {
       final response = await _dio.post(
         '${config.baseUrl}/v1/chat/completions',
         data: {
           'model': config.modelName,
-          'messages': messages.map((m) => {
-            'role': m.role == 'user' ? 'user' : 'assistant',
-            'content': m.content,
-          }).toList(),
+          'messages': messages
+              .map((m) => {
+                    'role': m.role == 'user' ? 'user' : 'assistant',
+                    'content': m.content,
+                  })
+              .toList(),
           'stream': true,
           'temperature': 0.7,
         },
@@ -364,7 +376,8 @@ class GeminiService extends StateNotifier<GeminiState> {
     }
   }
 
-  Stream<String> _sendCustomRequest(ModelConfig config, List<ChatMessage> messages) async* {
+  Stream<String> _sendCustomRequest(
+      ModelConfig config, List<ChatMessage> messages) async* {
     yield* _sendOpenAIRequest(config, messages);
   }
 
@@ -395,7 +408,7 @@ class GeminiService extends StateNotifier<GeminiState> {
         if (line.startsWith('data: ')) {
           final data = line.substring(6);
           if (data.trim() == '[DONE]') continue;
-          
+
           final json = jsonDecode(data);
           final choices = json['choices'];
           if (choices is List && choices.isNotEmpty) {
@@ -466,9 +479,7 @@ class GeminiService extends StateNotifier<GeminiState> {
 
     try {
       // 发送一个简单的测试请求
-      final testMessages = [
-        ChatMessage(role: 'user', content: 'Hi')
-      ];
+      final testMessages = [ChatMessage(role: 'user', content: 'Hi')];
       final stream = _sendRequest(config, testMessages);
       await stream.first;
       return true;
