@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -218,7 +219,7 @@ class GeminiService extends StateNotifier<GeminiState> {
     }
   }
 
-  Future<Stream<String>> _sendRequest(ModelConfig config, List<ChatMessage> messages) async* {
+  Stream<String> _sendRequest(ModelConfig config, List<ChatMessage> messages) async* {
     switch (config.provider) {
       case ModelProvider.gemini:
         yield* _sendGeminiRequest(config, messages);
