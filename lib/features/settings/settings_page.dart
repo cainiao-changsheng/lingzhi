@@ -33,20 +33,20 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   Future<void> _loadSettings() async {
     final service = ref.read(geminiServiceProvider.notifier);
-    final config = await service.getConfig();
+    final config = service.getConfig();
 
     setState(() {
-      _apiKeyController.text = config.apiKey;
-      _modelNameController.text = config.modelName;
+      _apiKeyController.text = config?.apiKey ?? '';
+      _modelNameController.text = config?.model ?? '';
     });
   }
 
   Future<void> _saveSettings() async {
     final service = ref.read(geminiServiceProvider.notifier);
-    await service.updateConfig(
+    await service.saveConfig(GeminiConfig(
       apiKey: _apiKeyController.text,
-      modelName: _modelNameController.text,
-    );
+      model: _modelNameController.text,
+    ));
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -194,11 +194,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline, color: AppColors.error),
+                          const Icon(Icons.error_outline,
+                              color: AppColors.error),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              geminiState.lastError!,
+                              geminiState.lastError?.message ?? '',
                               style: const TextStyle(color: AppColors.error),
                             ),
                           ),
@@ -271,7 +272,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     icon: Icons.music_note,
                     title: '音乐缓存',
                     value: '待统计',
-                    color: AppColors.accent,
+                    color: AppColors.secondary,
                     onClear: _clearMusicCache,
                   ),
 
@@ -302,7 +303,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
-
                   _buildInfoItem('应用名称', 'AI Agent Mobile'),
                   _buildInfoItem('版本', '1.0.0'),
                   _buildInfoItem('构建日期', '2026-05-22'),
@@ -321,7 +321,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 children: [
                   const Text(
                     '危险操作',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.error),
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.error),
                   ),
                   const SizedBox(height: 8),
                   const Text(
@@ -329,7 +332,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     style: TextStyle(color: Colors.grey),
                   ),
                   const SizedBox(height: 16),
-
                   ElevatedButton.icon(
                     onPressed: () {
                       _showResetConfirmation();

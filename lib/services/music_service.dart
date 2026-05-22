@@ -13,13 +13,25 @@ class MusicService extends StateNotifier<MusicState> {
         throw Exception('目录不存在: $directoryPath');
       }
 
-      final files = directory.listSync(recursive: true).where((entity) {
-        if (entity is File) {
-          final ext = p.extension(entity.path).toLowerCase();
-          return const ['.mp3', '.m4a', '.aac', '.flac', '.ogg', '.wav', '.wma'].contains(ext);
-        }
-        return false;
-      }).cast<File>().toList();
+      final files = directory
+          .listSync(recursive: true)
+          .where((entity) {
+            if (entity is File) {
+              final ext = p.extension(entity.path).toLowerCase();
+              return const [
+                '.mp3',
+                '.m4a',
+                '.aac',
+                '.flac',
+                '.ogg',
+                '.wav',
+                '.wma'
+              ].contains(ext);
+            }
+            return false;
+          })
+          .cast<File>()
+          .toList();
 
       final musicFiles = files.map((file) {
         final fileName = p.basenameWithoutExtension(file.path);
@@ -63,6 +75,10 @@ class MusicService extends StateNotifier<MusicState> {
   }
 
   void clearPlaylist() {
+    state = MusicState(isReady: false);
+  }
+
+  Future<void> clearCache() async {
     state = MusicState(isReady: false);
   }
 }

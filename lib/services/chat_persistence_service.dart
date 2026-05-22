@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart';
 import 'package:ai_agent_mobile_app/database/database.dart';
-import 'package:ai_agent_mobile_app/features/chat/models/chat_message.dart' as model;
+import 'package:ai_agent_mobile_app/features/chat/models/chat_message.dart'
+    as model;
 
 class ChatPersistenceService extends StateNotifier<ChatPersistenceState> {
   final AppDatabase _database;
@@ -76,13 +78,15 @@ class ChatPersistenceService extends StateNotifier<ChatPersistenceState> {
   Future<void> _saveMessages(List<model.ChatMessage> messages) async {
     if (messages.isEmpty) return;
 
-    final companions = messages.map((message) => ChatMessagesCompanion(
-          role: Value(message.role),
-          content: Value(message.content),
-          timestamp: Value(message.timestamp),
-          isRead: Value(true),
-          isFavorite: Value(false),
-        )).toList();
+    final companions = messages
+        .map((message) => ChatMessagesCompanion(
+              role: Value(message.role),
+              content: Value(message.content),
+              timestamp: Value(message.timestamp),
+              isRead: Value(true),
+              isFavorite: Value(false),
+            ))
+        .toList();
 
     try {
       await _database.insertChatMessagesBatch(companions);
@@ -113,11 +117,13 @@ class ChatPersistenceService extends StateNotifier<ChatPersistenceState> {
         offset: offset,
       );
 
-      return dbMessages.map((dbMessage) => model.ChatMessage(
-            role: dbMessage.role,
-            content: dbMessage.content,
-            timestamp: dbMessage.timestamp,
-          )).toList();
+      return dbMessages
+          .map((dbMessage) => model.ChatMessage(
+                role: dbMessage.role,
+                content: dbMessage.content,
+                timestamp: dbMessage.timestamp,
+              ))
+          .toList();
     } catch (e) {
       setState(() {
         state = state.copyWith(
@@ -188,16 +194,18 @@ class ChatPersistenceService extends StateNotifier<ChatPersistenceState> {
   Future<String> exportChatHistory() async {
     try {
       final messages = await _database.getChatMessages(limit: 1000);
-      
+
       final exportData = {
         'exportTime': DateTime.now().toIso8601String(),
         'messageCount': messages.length,
-        'messages': messages.map((msg) => {
-          'role': msg.role,
-          'content': msg.content,
-          'timestamp': msg.timestamp.toIso8601String(),
-          'isFavorite': msg.isFavorite,
-        }).toList(),
+        'messages': messages
+            .map((msg) => {
+                  'role': msg.role,
+                  'content': msg.content,
+                  'timestamp': msg.timestamp.toIso8601String(),
+                  'isFavorite': msg.isFavorite,
+                })
+            .toList(),
       };
 
       return exportData.toString();
@@ -285,7 +293,8 @@ class ChatPersistenceStats {
   }
 }
 
-final chatPersistenceServiceProvider = StateNotifierProvider.autoDispose<ChatPersistenceService, ChatPersistenceState>((ref) {
+final chatPersistenceServiceProvider = StateNotifierProvider.autoDispose<
+    ChatPersistenceService, ChatPersistenceState>((ref) {
   final database = ref.watch(databaseProvider);
   return ChatPersistenceService(database);
 });

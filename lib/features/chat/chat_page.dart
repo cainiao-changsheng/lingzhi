@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ai_agent_mobile_app/services/gemini_service.dart';
+import 'package:ai_agent_mobile_app/services/gemini_service.dart' as gemini;
 import 'package:ai_agent_mobile_app/services/chat_persistence_service.dart';
 import 'package:ai_agent_mobile_app/theme/theme.dart';
+import 'package:ai_agent_mobile_app/features/chat/models/chat_message.dart';
 
 class ChatPage extends ConsumerStatefulWidget {
   const ChatPage({super.key});
@@ -39,7 +40,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     try {
       final persistence = ref.read(chatPersistenceServiceProvider.notifier);
       final history = await persistence.loadHistory(limit: 50);
-      
+
       if (history.isNotEmpty) {
         setState(() {
           _messages.clear();
@@ -49,14 +50,16 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         // 没有历史记录，显示欢迎消息
         _messages.add(ChatMessage(
           role: 'model',
-          content: '你好！我是灵智，你的智能助手。\n\n我可以帮你：\n• 聊天和回答问题\n• 播放音乐\n• 生成图片\n• 设定时任务\n\n请先在设置中配置 Gemini API Key。',
+          content:
+              '你好！我是灵智，你的智能助手。\n\n我可以帮你：\n• 聊天和回答问题\n• 播放音乐\n• 生成图片\n• 设定时任务\n\n请先在设置中配置 Gemini API Key。',
         ));
       }
     } catch (e) {
       // 加载失败，显示默认消息
       _messages.add(ChatMessage(
         role: 'model',
-        content: '你好！我是 Marvis，你的 AI 助手。\n\n我可以帮你：\n• 聊天和回答问题\n• 播放音乐\n• 生成图片\n• 设定时任务\n\n请先在设置中配置 Gemini API Key。',
+        content:
+            '你好！我是 Marvis，你的 AI 助手。\n\n我可以帮你：\n• 聊天和回答问题\n• 播放音乐\n• 生成图片\n• 设定时任务\n\n请先在设置中配置 Gemini API Key。',
       ));
     }
   }
@@ -97,12 +100,13 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     final message = _messageController.text.trim();
     if (message.isEmpty || _isLoading) return;
 
-    final geminiService = ref.read(geminiServiceProvider.notifier);
-    final geminiState = ref.read(geminiServiceProvider);
+    final geminiService = ref.read(gemini.geminiServiceProvider.notifier);
+    final geminiState = ref.read(gemini.geminiServiceProvider);
 
     if (!geminiState.isInitialized) {
       setState(() {
-        _messages.add(ChatMessage(role: 'model', content: '请先在设置中配置 Gemini API Key。'));
+        _messages.add(
+            ChatMessage(role: 'model', content: '请先在设置中配置 Gemini API Key。'));
       });
       _scrollToBottom();
       return;
@@ -157,9 +161,12 @@ class _ChatPageState extends ConsumerState<ChatPage> {
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.all(16),
-              itemCount: _messages.length + (_isLoading && _streamingText.isEmpty ? 1 : 0),
+              itemCount: _messages.length +
+                  (_isLoading && _streamingText.isEmpty ? 1 : 0),
               itemBuilder: (context, index) {
-                if (index == _messages.length && _isLoading && _streamingText.isEmpty) {
+                if (index == _messages.length &&
+                    _isLoading &&
+                    _streamingText.isEmpty) {
                   return _buildTypingIndicator();
                 }
                 return _buildMessageBubble(_messages[index]);
@@ -183,7 +190,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         child: Container(
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.all(16),
-          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+          constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.75),
           decoration: BoxDecoration(
             color: AppColors.cardBackground,
             borderRadius: const BorderRadius.only(
@@ -200,7 +208,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
               Expanded(
                 child: Text(
                   _streamingText,
-                  style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.5),
+                  style: const TextStyle(
+                      color: Colors.white, fontSize: 14, height: 1.5),
                 ),
               ),
               const SizedBox(width: 4),
@@ -227,7 +236,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
         child: Container(
           padding: const EdgeInsets.all(16),
-          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+          constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.75),
           decoration: BoxDecoration(
             color: isUser ? AppColors.surface : AppColors.cardBackground,
             borderRadius: BorderRadius.only(
@@ -246,7 +256,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
             children: [
               Text(
                 message.content,
-                style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.5),
+                style: const TextStyle(
+                    color: Colors.white, fontSize: 14, height: 1.5),
               ),
             ],
           ),
@@ -322,7 +333,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
               decoration: const InputDecoration(
                 hintText: '输入消息...',
                 border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
               maxLines: 4,
               minLines: 1,
@@ -340,7 +352,8 @@ class _ChatPageState extends ConsumerState<ChatPage> {
             ),
             child: IconButton(
               onPressed: _isLoading ? null : _sendMessage,
-              icon: const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+              icon:
+                  const Icon(Icons.send_rounded, color: Colors.white, size: 20),
             ),
           ),
         ],

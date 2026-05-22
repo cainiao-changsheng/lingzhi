@@ -1,4 +1,4 @@
-name: lingzhi_mobile_app
+name: ai_agent_mobile_app
 description: 灵智 - 智能AI助手应用，集成聊天、图片生成、音乐播放功能
 publish_to: 'none'
 version: 1.0.0+1

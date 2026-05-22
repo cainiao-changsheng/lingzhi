@@ -9,15 +9,20 @@ class ImageGenerationPage extends ConsumerStatefulWidget {
   const ImageGenerationPage({super.key});
 
   @override
-  ConsumerState<ImageGenerationPage> createState() => _ImageGenerationPageState();
+  ConsumerState<ImageGenerationPage> createState() =>
+      _ImageGenerationPageState();
 }
 
 class _ImageGenerationPageState extends ConsumerState<ImageGenerationPage> {
   final TextEditingController _promptController = TextEditingController();
-  final TextEditingController _stepsController = TextEditingController(text: '20');
-  final TextEditingController _guidanceController = TextEditingController(text: '7.5');
-  final TextEditingController _widthController = TextEditingController(text: '512');
-  final TextEditingController _heightController = TextEditingController(text: '512');
+  final TextEditingController _stepsController =
+      TextEditingController(text: '20');
+  final TextEditingController _guidanceController =
+      TextEditingController(text: '7.5');
+  final TextEditingController _widthController =
+      TextEditingController(text: '512');
+  final TextEditingController _heightController =
+      TextEditingController(text: '512');
 
   bool _showAdvanced = false;
 
@@ -137,7 +142,8 @@ class _ImageGenerationPageState extends ConsumerState<ImageGenerationPage> {
                       const Spacer(),
                       Switch(
                         value: _showAdvanced,
-                        onChanged: (value) => setState(() => _showAdvanced = value),
+                        onChanged: (value) =>
+                            setState(() => _showAdvanced = value),
                       ),
                     ],
                   ),
@@ -226,7 +232,8 @@ class _ImageGenerationPageState extends ConsumerState<ImageGenerationPage> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline, color: AppColors.error),
+                          const Icon(Icons.error_outline,
+                              color: AppColors.error),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -263,7 +270,8 @@ class _ImageGenerationPageState extends ConsumerState<ImageGenerationPage> {
                   children: [
                     const Text(
                       '最近生成',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 12),
                     _buildGeneratedImageCard(lastGenerated),
@@ -284,7 +292,8 @@ class _ImageGenerationPageState extends ConsumerState<ImageGenerationPage> {
                       children: [
                         const Text(
                           '历史记录',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                         Text(
                           '共 ${state.history.length} 张',
@@ -314,12 +323,15 @@ class _ImageGenerationPageState extends ConsumerState<ImageGenerationPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 图片预览
-          FutureBuilder<File>(
-            future: File(image.filePath).exists().then((exists) => exists ? File(image.filePath) : null),
+          FutureBuilder<File?>(
+            future: File(image.filePath)
+                .exists()
+                .then((exists) => exists ? File(image.filePath) : null),
             builder: (context, snapshot) {
               if (snapshot.hasData && snapshot.data != null) {
                 return ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(12)),
                   child: Image.file(
                     snapshot.data!,
                     width: double.infinity,
@@ -333,7 +345,8 @@ class _ImageGenerationPageState extends ConsumerState<ImageGenerationPage> {
                 height: 200,
                 decoration: BoxDecoration(
                   color: AppColors.cardBackground,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(12)),
                 ),
                 child: const Center(
                   child: Icon(Icons.image, size: 64, color: Colors.grey),
@@ -395,8 +408,10 @@ class _ImageGenerationPageState extends ConsumerState<ImageGenerationPage> {
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: AppColors.border),
             ),
-            child: FutureBuilder<File>(
-              future: File(image.filePath).exists().then((exists) => exists ? File(image.filePath) : null),
+            child: FutureBuilder<File?>(
+              future: File(image.filePath)
+                  .exists()
+                  .then((exists) => exists ? File(image.filePath) : null),
               builder: (context, snapshot) {
                 if (snapshot.hasData && snapshot.data != null) {
                   return ClipRRect(

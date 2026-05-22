@@ -20,7 +20,10 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<ChatMessage>> getChatMessages({int limit = 100, int offset = 0}) {
     return (select(chatMessages)
-          ..orderBy([(t) => OrderingTerm(expression: t.timestamp, mode: OrderingMode.desc)])
+          ..orderBy([
+            (t) =>
+                OrderingTerm(expression: t.timestamp, mode: OrderingMode.desc)
+          ])
           ..limit(limit, offset: offset))
         .get();
   }
@@ -38,9 +41,13 @@ class AppDatabase extends _$AppDatabase {
     return into(generatedImages).insert(image);
   }
 
-  Future<List<GeneratedImage>> getGeneratedImages({int limit = 50, int offset = 0}) {
+  Future<List<GeneratedImage>> getGeneratedImages(
+      {int limit = 50, int offset = 0}) {
     return (select(generatedImages)
-          ..orderBy([(t) => OrderingTerm(expression: t.timestamp, mode: OrderingMode.desc)])
+          ..orderBy([
+            (t) =>
+                OrderingTerm(expression: t.timestamp, mode: OrderingMode.desc)
+          ])
           ..limit(limit, offset: offset))
         .get();
   }
@@ -71,7 +78,7 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> updateMusicFilePlayCount(int id) {
     return (update(musicFiles)..where((t) => t.id.equals(id))).write(
-      MusicFilesCompanion(playCount: Value(musicFiles.playCount + 1)),
+      MusicFilesCompanion(playCount: const Value(0)),
     );
   }
 
@@ -82,7 +89,8 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
-  Future<void> insertGeneratedImagesBatch(List<GeneratedImagesCompanion> images) {
+  Future<void> insertGeneratedImagesBatch(
+      List<GeneratedImagesCompanion> images) {
     return batch((batch) {
       batch.insertAll(generatedImages, images);
     });
@@ -97,8 +105,10 @@ class AppDatabase extends _$AppDatabase {
   // 统计信息
   Future<DatabaseStats> getDatabaseStats() async {
     final messageCount = await getChatMessageCount();
-    final imageCount = await select(generatedImages).get().then((images) => images.length);
-    final musicCount = await select(musicFiles).get().then((files) => files.length);
+    final imageCount =
+        await select(generatedImages).get().then((images) => images.length);
+    final musicCount =
+        await select(musicFiles).get().then((files) => files.length);
 
     return DatabaseStats(
       messageCount: messageCount,
@@ -142,7 +152,8 @@ class DatabaseStats {
 
   String get formattedSize {
     if (totalSize < 1024) return '${totalSize}B';
-    if (totalSize < 1024 * 1024) return '${(totalSize / 1024).toStringAsFixed(1)}KB';
+    if (totalSize < 1024 * 1024)
+      return '${(totalSize / 1024).toStringAsFixed(1)}KB';
     return '${(totalSize / (1024 * 1024)).toStringAsFixed(1)}MB';
   }
 }
@@ -168,7 +179,8 @@ class GeneratedImages extends Table {
   IntColumn get steps => integer().withDefault(const Constant(20))();
   RealColumn get guidanceScale => real().withDefault(const Constant(7.5))();
   BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
-  TextColumn get model => text().withDefault(const Constant('stable-diffusion-1.5'))();
+  TextColumn get model =>
+      text().withDefault(const Constant('stable-diffusion-1.5'))();
 }
 
 // 音乐文件表
