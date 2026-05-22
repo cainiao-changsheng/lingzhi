@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ai_agent_mobile_app/services/image_generation_service.dart';
+import 'package:ai_agent_mobile_app/services/stable_diffusion_model_service.dart';
 import 'package:ai_agent_mobile_app/theme/theme.dart';
 import 'package:ai_agent_mobile_app/widgets/custom_card.dart';
 
@@ -30,10 +31,17 @@ class _ImageGenerationPageState extends ConsumerState<ImageGenerationPage> {
   void initState() {
     super.initState();
     _loadHistory();
+    _checkModelStatus();
   }
 
   Future<void> _loadHistory() async {
     await ref.read(imageGenerationServiceProvider.notifier).loadHistory();
+  }
+
+  Future<void> _checkModelStatus() async {
+    await ref
+        .read(stableDiffusionModelServiceProvider.notifier)
+        .checkModelStatus();
   }
 
   @override
@@ -47,6 +55,18 @@ class _ImageGenerationPageState extends ConsumerState<ImageGenerationPage> {
   }
 
   Future<void> _generateImage() async {
+    final modelState = ref.read(stableDiffusionModelServiceProvider);
+
+    if (!modelState.isModelInstalled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('请先下载 Stable Diffusion 模型'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      return;
+    }
+
     final prompt = _promptController.text.trim();
     if (prompt.isEmpty) return;
 
@@ -67,8 +87,8 @@ class _ImageGenerationPageState extends ConsumerState<ImageGenerationPage> {
 
       if (filePath != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('图片生成成功'),
+          const SnackBar(
+            content: Text('图片生成成功'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -94,15 +114,52 @@ class _ImageGenerationPageState extends ConsumerState<ImageGenerationPage> {
     );
   }
 
+  Future<void> _downloadModel() async {
+    final modelService = ref.read(stableDiffusionModelServiceProvider.notifier);
+    await modelService.downloadModel();
+  }
+
+  Future<void> _deleteModel() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('删除模型'),
+        content: const Text('确定要删除 Stable Diffusion 模型吗？删除后需要重新下载才能生成图片。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final modelService =
+          ref.read(stableDiffusionModelServiceProvider.notifier);
+      await modelService.deleteModel();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(imageGenerationServiceProvider);
+    final modelState = ref.watch(stableDiffusionModelServiceProvider);
     final lastGenerated = state.lastGenerated;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('图片生成'),
         actions: [
+          IconButton(
+            onPressed: _checkModelStatus,
+            icon: const Icon(Icons.refresh),
+            tooltip: '刷新状态',
+          ),
           if (state.history.isNotEmpty)
             IconButton(
               onPressed: _clearHistory,
@@ -115,124 +172,104 @@ class _ImageGenerationPageState extends ConsumerState<ImageGenerationPage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // 生成表单
+            // 模型状态卡片
             CustomCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    '图片生成',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    '基于 Stable Diffusion 1.5 本地生成图片',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // 提示词输入
-                  TextFormField(
-                    controller: _promptController,
-                    decoration: const InputDecoration(
-                      labelText: '提示词',
-                      hintText: '描述你想要生成的图片内容...',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.edit),
-                    ),
-                    maxLines: 3,
-                    minLines: 1,
-                  ),
-                  const SizedBox(height: 12),
-
-                  // 高级设置切换
                   Row(
                     children: [
-                      const Text('高级设置'),
-                      const Spacer(),
-                      Switch(
-                        value: _showAdvanced,
-                        onChanged: (value) =>
-                            setState(() => _showAdvanced = value),
+                      Icon(
+                        modelState.isModelInstalled
+                            ? Icons.check_circle
+                            : modelState.isDownloading
+                                ? Icons.downloading
+                                : Icons.warning,
+                        color: modelState.isModelInstalled
+                            ? AppColors.success
+                            : modelState.isDownloading
+                                ? AppColors.primary
+                                : AppColors.warning,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Stable Diffusion 模型',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
-
-                  if (_showAdvanced) ...[
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: _stepsController,
-                            decoration: const InputDecoration(
-                              labelText: '步数',
-                              border: OutlineInputBorder(),
-                            ),
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextFormField(
-                            controller: _guidanceController,
-                            decoration: const InputDecoration(
-                              labelText: '引导系数',
-                              border: OutlineInputBorder(),
-                            ),
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                      ],
+                  const SizedBox(height: 12),
+                  if (modelState.isDownloading) ...[
+                    LinearProgressIndicator(
+                      value: modelState.progress,
+                      backgroundColor: AppColors.border,
+                      color: AppColors.primary,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: _widthController,
-                            decoration: const InputDecoration(
-                              labelText: '宽度',
-                              border: OutlineInputBorder(),
-                            ),
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextFormField(
-                            controller: _heightController,
-                            decoration: const InputDecoration(
-                              labelText: '高度',
-                              border: OutlineInputBorder(),
-                            ),
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-
-                  const SizedBox(height: 16),
-
-                  // 状态显示
-                  if (state.isGenerating)
-                    Column(
-                      children: [
-                        LinearProgressIndicator(
-                          value: state.progress,
-                          backgroundColor: AppColors.border,
-                          color: AppColors.primary,
-                        ),
-                        const SizedBox(height: 8),
                         Text(
-                          '生成中... ${(state.progress * 100).toInt()}%',
+                          '下载中... ${(modelState.progress * 100).toInt()}%',
                           style: const TextStyle(color: Colors.white70),
                         ),
+                        Text(
+                          '${ref.read(stableDiffusionModelServiceProvider.notifier).formattedDownloadedBytes} / '
+                          '${ref.read(stableDiffusionModelServiceProvider.notifier).formattedTotalBytes}',
+                          style: const TextStyle(color: Colors.grey),
+                        ),
                       ],
                     ),
-
-                  if (state.lastError != null)
+                  ] else if (modelState.isModelInstalled) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.check, color: AppColors.success),
+                            const SizedBox(width: 8),
+                            const Text('模型已安装'),
+                          ],
+                        ),
+                        TextButton.icon(
+                          onPressed: _deleteModel,
+                          icon: const Icon(Icons.delete_outline, size: 18),
+                          label: const Text('删除'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.error,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '版本: ${modelState.installedVersion ?? '1.5'}',
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                  ] else ...[
+                    const Text(
+                      '需要下载 Stable Diffusion 1.5 模型才能生成图片',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton.icon(
+                      onPressed:
+                          modelState.isDownloading ? null : _downloadModel,
+                      icon: const Icon(Icons.download),
+                      label: const Text('下载模型'),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 48),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      '模型大小约 4GB，下载需要一定时间，请确保网络连接稳定。',
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                  ],
+                  if (modelState.error != null) ...[
+                    const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -247,28 +284,179 @@ class _ImageGenerationPageState extends ConsumerState<ImageGenerationPage> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              state.lastError!,
+                              modelState.error!,
                               style: const TextStyle(color: AppColors.error),
                             ),
                           ),
                         ],
                       ),
                     ),
-
-                  const SizedBox(height: 16),
-
-                  // 生成按钮
-                  ElevatedButton.icon(
-                    onPressed: state.isGenerating ? null : _generateImage,
-                    icon: const Icon(Icons.generating_tokens),
-                    label: const Text('生成图片'),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 48),
-                    ),
-                  ),
+                  ],
                 ],
               ),
             ),
+
+            const SizedBox(height: 20),
+
+            // 生成表单
+            if (modelState.isModelInstalled)
+              CustomCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '图片生成',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      '基于 Stable Diffusion 1.5 本地生成图片',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // 提示词输入
+                    TextFormField(
+                      controller: _promptController,
+                      decoration: const InputDecoration(
+                        labelText: '提示词',
+                        hintText: '描述你想要生成的图片内容...',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.edit),
+                      ),
+                      maxLines: 3,
+                      minLines: 1,
+                    ),
+                    const SizedBox(height: 12),
+
+                    // 高级设置切换
+                    Row(
+                      children: [
+                        const Text('高级设置'),
+                        const Spacer(),
+                        Switch(
+                          value: _showAdvanced,
+                          onChanged: (value) =>
+                              setState(() => _showAdvanced = value),
+                        ),
+                      ],
+                    ),
+
+                    if (_showAdvanced) ...[
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _stepsController,
+                              decoration: const InputDecoration(
+                                labelText: '步数',
+                                border: OutlineInputBorder(),
+                              ),
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _guidanceController,
+                              decoration: const InputDecoration(
+                                labelText: '引导系数',
+                                border: OutlineInputBorder(),
+                              ),
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _widthController,
+                              decoration: const InputDecoration(
+                                labelText: '宽度',
+                                border: OutlineInputBorder(),
+                              ),
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _heightController,
+                              decoration: const InputDecoration(
+                                labelText: '高度',
+                                border: OutlineInputBorder(),
+                              ),
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+
+                    const SizedBox(height: 16),
+
+                    // 状态显示
+                    if (state.isGenerating)
+                      Column(
+                        children: [
+                          LinearProgressIndicator(
+                            value: state.progress,
+                            backgroundColor: AppColors.border,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '生成中... ${(state.progress * 100).toInt()}%',
+                            style: const TextStyle(color: Colors.white70),
+                          ),
+                        ],
+                      ),
+
+                    if (state.lastError != null)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.error),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline,
+                                color: AppColors.error),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                state.lastError!,
+                                style: const TextStyle(color: AppColors.error),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    const SizedBox(height: 16),
+
+                    // 生成按钮
+                    ElevatedButton.icon(
+                      onPressed:
+                          (state.isGenerating || modelState.isDownloading)
+                              ? null
+                              : _generateImage,
+                      icon: const Icon(Icons.generating_tokens),
+                      label: const Text('生成图片'),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 48),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
             const SizedBox(height: 20),
 
