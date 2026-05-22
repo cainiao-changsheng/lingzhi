@@ -17,6 +17,8 @@ class SettingsPage extends ConsumerStatefulWidget {
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   final TextEditingController _apiKeyController = TextEditingController();
   final TextEditingController _modelNameController = TextEditingController();
+  final TextEditingController _proxyHostController = TextEditingController();
+  final TextEditingController _proxyPortController = TextEditingController();
 
   @override
   void initState() {
@@ -28,6 +30,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   void dispose() {
     _apiKeyController.dispose();
     _modelNameController.dispose();
+    _proxyHostController.dispose();
+    _proxyPortController.dispose();
     super.dispose();
   }
 
@@ -37,7 +41,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
     setState(() {
       _apiKeyController.text = config?.apiKey ?? '';
-      _modelNameController.text = config?.model ?? '';
+      _modelNameController.text = config?.model ?? 'gemini-3.5-flash';
     });
   }
 
@@ -45,7 +49,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final service = ref.read(geminiServiceProvider.notifier);
     await service.saveConfig(GeminiConfig(
       apiKey: _apiKeyController.text,
-      model: _modelNameController.text,
+      model: _modelNameController.text.isNotEmpty
+          ? _modelNameController.text
+          : 'gemini-3.5-flash',
     ));
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -67,10 +73,23 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
       );
     } catch (e) {
+      String errorMessage = '连接失败';
+      if (e.toString().contains('Failed host lookup') ||
+          e.toString().contains('No address')) {
+        errorMessage = '网络连接失败，请检查网络设置或配置代理';
+      } else if (e.toString().contains('401') ||
+          e.toString().contains('invalid')) {
+        errorMessage = 'API Key 无效，请检查您的 API Key';
+      } else if (e.toString().contains('quota')) {
+        errorMessage = '今日免费额度已用完，明天自动重置';
+      } else {
+        errorMessage = '连接失败: $e';
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('连接失败: $e'),
+          content: Text(errorMessage),
           backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 5),
         ),
       );
     }
@@ -176,7 +195,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     controller: _modelNameController,
                     decoration: const InputDecoration(
                       labelText: '模型名称',
-                      hintText: '例如: gemini-1.5-flash',
+                      hintText: '例如: gemini-3.5-flash',
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.model_training),
                     ),
@@ -199,13 +218,36 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              geminiState.lastError?.message ?? '',
+                              _formatError(geminiState.lastError!),
                               style: const TextStyle(color: AppColors.error),
                             ),
                           ),
                         ],
                       ),
                     ),
+
+                  // 网络提示
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.warning),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.info_outline,
+                            color: AppColors.warning),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: const Text(
+                            '请确保网络可以访问 Google 服务。如果无法连接，请检查网络设置或使用代理。',
+                            style: TextStyle(color: AppColors.warning),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
 
                   const SizedBox(height: 16),
 
@@ -427,6 +469,22 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ],
       ),
     );
+  }
+
+  String _formatError(GeminiError error) {
+    if (error.message.contains('Failed host lookup') ||
+        error.message.contains('No address')) {
+      return '网络连接失败，请检查网络设置或配置代理';
+    } else if (error.message.contains('401') ||
+        error.message.contains('invalid')) {
+      return 'API Key 无效，请检查您的 API Key';
+    } else if (error.message.contains('quota')) {
+      return '今日免费额度已用完（1500次/天），明天自动重置';
+    } else if (error.message.contains('timeout')) {
+      return '请求超时，请检查网络后重试';
+    } else {
+      return error.message;
+    }
   }
 
   void _showResetConfirmation() {

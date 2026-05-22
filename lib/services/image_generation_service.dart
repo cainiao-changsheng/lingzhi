@@ -108,7 +108,7 @@ class ImageGenerationService extends StateNotifier<ImageGenerationState> {
     // 简化文本绘制
     final textWidth = text.length * 20;
     final textHeight = 30;
-    
+
     // 绘制文本背景
     for (int dy = 0; dy < textHeight; dy++) {
       for (int dx = 0; dx < textWidth; dx++) {
@@ -132,7 +132,8 @@ class ImageGenerationService extends StateNotifier<ImageGenerationState> {
     }
 
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final safePrompt = prompt.replaceAll(RegExp(r'[^\w\s-]'), '').replaceAll(' ', '_');
+    final safePrompt =
+        prompt.replaceAll(RegExp(r'[^\w\s-]'), '').replaceAll(' ', '_');
     final fileName = 'generated_${safePrompt}_$timestamp.png';
     final filePath = p.join(imagesDir.path, fileName);
 
@@ -169,6 +170,49 @@ class ImageGenerationService extends StateNotifier<ImageGenerationState> {
   // 设置状态辅助方法
   void setState(void Function() fn) {
     fn();
+  }
+
+  // 加载历史记录
+  Future<void> loadHistory() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final imagesDir = Directory(p.join(directory.path, 'generated_images'));
+
+      if (imagesDir.existsSync()) {
+        final files = imagesDir
+            .listSync()
+            .where((file) => file.path.endsWith('.png'))
+            .toList();
+        final history = <GeneratedImage>[];
+
+        for (final file in files) {
+          final filePath = file.path;
+          final fileName = p.basename(filePath);
+          final match = RegExp(r'generated_(.*)_\d+\.png').firstMatch(fileName);
+          final prompt = match != null
+              ? match.group(1)?.replaceAll('_', ' ') ?? '未知'
+              : '未知';
+
+          final fileStat = File(filePath).statSync();
+          history.add(GeneratedImage(
+            prompt: prompt,
+            filePath: filePath,
+            timestamp: DateTime.fromMillisecondsSinceEpoch(
+                fileStat.modified.millisecondsSinceEpoch),
+            width: 512,
+            height: 512,
+            steps: 20,
+            guidanceScale: 7.5,
+          ));
+        }
+
+        history.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+        state = state.copyWith(history: history);
+      }
+    } catch (e) {
+      debugPrint('Failed to load image history: $e');
+    }
   }
 }
 
@@ -245,12 +289,12 @@ class GeneratedImage {
 }
 
 enum DevicePerformance {
-  low,    // 无法运行 SD 1.5
+  low, // 无法运行 SD 1.5
   medium, // 可运行但速度慢
-  high,   // 可流畅运行
+  high, // 可流畅运行
 }
 
-final imageGenerationServiceProvider =
-    StateNotifierProvider.autoDispose<ImageGenerationService, ImageGenerationState>((ref) {
+final imageGenerationServiceProvider = StateNotifierProvider.autoDispose<
+    ImageGenerationService, ImageGenerationState>((ref) {
   return ImageGenerationService();
 });

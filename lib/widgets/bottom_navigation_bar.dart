@@ -146,7 +146,8 @@ class _BottomNavigationIndicatorState extends State<BottomNavigationIndicator>
     // 计算目标页面
     final screenWidth = MediaQuery.of(context).size.width;
     final tabWidth = screenWidth / _totalTabs;
-    final targetIndex = (_dragOffset / tabWidth).clamp(0, _totalTabs - 1).floor();
+    final targetIndex =
+        (_dragOffset / tabWidth).clamp(0, _totalTabs - 1).floor();
 
     if (targetIndex != widget.currentIndex) {
       widget.onIndexChanged(targetIndex);
@@ -223,14 +224,7 @@ class _BottomNavigationIndicatorState extends State<BottomNavigationIndicator>
                     child: Container(
                       color: Colors.transparent,
                       child: Center(
-                        child: AnimatedCrossFade(
-                          duration: const Duration(milliseconds: 300),
-                          crossFadeState: _isDragging
-                              ? CrossFadeState.showSecond
-                              : CrossFadeState.showFirst,
-                          firstChild: _buildDotIndicator(isSelected, tabData),
-                          secondChild: _buildIconIndicator(isSelected, tabData),
-                        ),
+                        child: _buildIconIndicator(isSelected, tabData),
                       ),
                     ),
                   ),

@@ -27,6 +27,16 @@ class _ImageGenerationPageState extends ConsumerState<ImageGenerationPage> {
   bool _showAdvanced = false;
 
   @override
+  void initState() {
+    super.initState();
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    await ref.read(imageGenerationServiceProvider.notifier).loadHistory();
+  }
+
+  @override
   void dispose() {
     _promptController.dispose();
     _stepsController.dispose();

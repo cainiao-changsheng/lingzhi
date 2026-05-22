@@ -68,7 +68,11 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_currentIndex],
+      body: SafeArea(
+        top: true,
+        bottom: false,
+        child: _pages[_currentIndex],
+      ),
       bottomNavigationBar: BottomNavigationIndicator(
         currentIndex: _currentIndex,
         onIndexChanged: (index) {
