@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ai_agent_mobile_app/services/gemini_service.dart';
-import 'package:ai_agent_mobile_app/services/music_service.dart';
 import 'package:ai_agent_mobile_app/services/jamendo_music_service.dart';
 import 'package:ai_agent_mobile_app/services/stable_diffusion_model_service.dart';
 import 'package:ai_agent_mobile_app/services/image_generation_service.dart';

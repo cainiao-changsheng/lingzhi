@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ai_agent_mobile_app/features/chat/chat_page.dart';
-import 'package:ai_agent_mobile_app/features/music/music_player.dart';
+import 'package:ai_agent_mobile_app/features/music/music_page.dart';
 import 'package:ai_agent_mobile_app/features/settings/settings_page.dart';
 import 'package:ai_agent_mobile_app/features/image_generation/image_generation_page.dart';
 import 'package:ai_agent_mobile_app/widgets/bottom_navigation_bar.dart';
@@ -60,7 +60,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
   final List<Widget> _pages = [
     const ChatPage(),
-    const MusicPlayer(),
+    const MusicPage(),
     const ImageGenerationPage(),
     const SettingsPage(),
   ];
