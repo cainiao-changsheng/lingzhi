@@ -24,9 +24,6 @@ dependencies:
   # Gemini API
   google_generative_ai: ^0.4.6
 
-  # 音乐播放
-  just_audio: ^0.9.38
-
   # 网络请求
   dio: ^5.4.3+1
 
@@ -46,9 +43,6 @@ dependencies:
 
   # 通知
   flutter_local_notifications: ^17.1.2
-
-  # 音频服务（后台播放）
-  audio_service: ^0.18.15
 
   # UUID生成
   uuid: ^4.4.0

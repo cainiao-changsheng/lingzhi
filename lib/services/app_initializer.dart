@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ai_agent_mobile_app/services/gemini_service.dart';
-import 'package:ai_agent_mobile_app/services/jamendo_music_service.dart';
 import 'package:ai_agent_mobile_app/services/stable_diffusion_model_service.dart';
 import 'package:ai_agent_mobile_app/services/image_generation_service.dart';
 
@@ -46,13 +45,8 @@ class AppInitializer {
       errors.add('图片生成服务初始化失败: $e');
     }
 
-    // 4. 初始化 Jamendo 音乐服务
-    try {
-      final jamendoService = ref.read(jamendoMusicServiceProvider.notifier);
-      await jamendoService.getPopularTracks();
-    } catch (e) {
-      errors.add('在线音乐服务初始化失败: $e');
-    }
+    // 4. 音乐服务延迟初始化（打开页面时连接 MediaSession）
+    // MusicController 在 MusicPage 首次打开时自动连接
 
     return InitializationResult(
       success: errors.isEmpty,
@@ -132,14 +126,6 @@ class _InitializationPageState extends ConsumerState<InitializationPage> {
 
       final imageService = ref.read(imageGenerationServiceProvider.notifier);
       await imageService.loadHistory();
-
-      setState(() {
-        _statusMessage = '加载在线音乐...';
-      });
-      await Future.delayed(const Duration(milliseconds: 300));
-
-      final jamendoService = ref.read(jamendoMusicServiceProvider.notifier);
-      await jamendoService.getPopularTracks();
 
       setState(() {
         _isInitializing = false;

@@ -6,7 +6,7 @@ import 'package:path/path.dart' as p;
 
 part 'database.g.dart';
 
-@DriftDatabase(tables: [ChatMessages, GeneratedImages, MusicFiles])
+@DriftDatabase(tables: [ChatMessages, GeneratedImages])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
@@ -56,32 +56,6 @@ class AppDatabase extends _$AppDatabase {
     return delete(generatedImages).go();
   }
 
-  // 音乐文件操作
-  Future<int> insertMusicFile(MusicFilesCompanion file) {
-    return into(musicFiles).insert(file);
-  }
-
-  Future<List<MusicFile>> getMusicFiles({String? directory, int limit = 100}) {
-    final query = select(musicFiles);
-    if (directory != null) {
-      query.where((t) => t.directory.equals(directory));
-    }
-    query
-      ..orderBy([(t) => OrderingTerm(expression: t.title)])
-      ..limit(limit);
-    return query.get();
-  }
-
-  Future<void> clearMusicFiles() {
-    return delete(musicFiles).go();
-  }
-
-  Future<void> updateMusicFilePlayCount(int id) {
-    return (update(musicFiles)..where((t) => t.id.equals(id))).write(
-      MusicFilesCompanion(playCount: const Value(0)),
-    );
-  }
-
   // 批量操作
   Future<void> insertChatMessagesBatch(List<ChatMessagesCompanion> messages) {
     return batch((batch) {
@@ -96,24 +70,15 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
-  Future<void> insertMusicFilesBatch(List<MusicFilesCompanion> files) {
-    return batch((batch) {
-      batch.insertAll(musicFiles, files);
-    });
-  }
-
   // 统计信息
   Future<DatabaseStats> getDatabaseStats() async {
     final messageCount = await getChatMessageCount();
     final imageCount =
         await select(generatedImages).get().then((images) => images.length);
-    final musicCount =
-        await select(musicFiles).get().then((files) => files.length);
 
     return DatabaseStats(
       messageCount: messageCount,
       imageCount: imageCount,
-      musicCount: musicCount,
       totalSize: await _getDatabaseSize(),
     );
   }
@@ -140,13 +105,11 @@ LazyDatabase _openConnection() {
 class DatabaseStats {
   final int messageCount;
   final int imageCount;
-  final int musicCount;
   final int totalSize;
 
   DatabaseStats({
     required this.messageCount,
     required this.imageCount,
-    required this.musicCount,
     required this.totalSize,
   });
 
@@ -181,20 +144,4 @@ class GeneratedImages extends Table {
   BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
   TextColumn get model =>
       text().withDefault(const Constant('stable-diffusion-1.5'))();
-}
-
-// 音乐文件表
-class MusicFiles extends Table {
-  IntColumn get id => integer().autoIncrement()();
-  TextColumn get path => text().unique()();
-  TextColumn get title => text()();
-  TextColumn get artist => text().nullable()();
-  TextColumn get album => text().nullable()();
-  TextColumn get directory => text()();
-  IntColumn get duration => integer().nullable()(); // 秒
-  IntColumn get fileSize => integer().nullable()(); // 字节
-  IntColumn get playCount => integer().withDefault(const Constant(0))();
-  DateTimeColumn get lastPlayed => dateTime().nullable()();
-  DateTimeColumn get addedAt => dateTime().withDefault(currentDateAndTime)();
-  BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
 }
