@@ -6,7 +6,7 @@ class MusicFile {
   final Duration? duration;
   final int? fileSize;
 
-  MusicFile({
+  const MusicFile({
     required this.path,
     required this.title,
     this.artist,

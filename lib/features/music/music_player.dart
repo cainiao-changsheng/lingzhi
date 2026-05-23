@@ -27,18 +27,33 @@ class _MusicPlayerState extends ConsumerState<MusicPlayer> {
   }
 
   void _initAudioPlayer() {
-    final musicState = ref.read(musicServiceProvider);
+    // 设置音频播放器监听
+    _setupAudioListeners();
+    // 自动加载测试音频
+    _loadTestAudio();
+  }
 
-    if (musicState.currentPlaylist.isNotEmpty) {
-      _loadPlaylist(musicState.currentPlaylist);
+  Future<void> _loadTestAudio() async {
+    try {
+      await _audioPlayer.setAudioSource(
+        AudioSource.asset('assets/audio/test_tone.wav'),
+      );
+      ref.read(musicServiceProvider.notifier).setCurrentTrack(
+        const MusicFile(
+          path: 'assets/audio/test_tone.wav',
+          title: '测试音调 (440Hz)',
+          artist: '系统生成',
+          duration: Duration(seconds: 5),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Failed to load test audio: $e');
     }
+  }
 
+  void _setupAudioListeners() {
     _playerStateSubscription = _audioPlayer.playerStateStream.listen((state) {
-      if (state.playing) {
-        ref.read(musicServiceProvider.notifier).setPlaying(true);
-      } else {
-        ref.read(musicServiceProvider.notifier).setPlaying(false);
-      }
+      ref.read(musicServiceProvider.notifier).setPlaying(state.playing);
     });
 
     _durationSubscription = _audioPlayer.durationStream.listen((duration) {
